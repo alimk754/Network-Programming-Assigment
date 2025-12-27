@@ -8,11 +8,11 @@ if len(sys.argv) <= 1:
 else:
     server_ip = sys.argv[1]
 
-# Create a server socket, bind it to a port and start listening
+
 tcpSerSock = socket(AF_INET, SOCK_STREAM)
 
 # Fill in start.
-Proxy_Port = 8885
+Proxy_Port = 8888
 tcpSerSock.bind(('', Proxy_Port))
 tcpSerSock.listen(5)
 print("proxy server is ready to listen in port", Proxy_Port)
@@ -21,22 +21,20 @@ print("proxy server is ready to listen in port", Proxy_Port)
 while 1:
     # Start receiving data from the client
     print('Ready to serve...')
-    tcpCliSock, addr = tcpSerSock.accept()  # addr -> address of client
+    tcpCliSock, addr = tcpSerSock.accept()  
     print('Received a connection from:', addr)
-    message = tcpCliSock.recv(1024).decode()  # client request
+    message = tcpCliSock.recv(1024).decode()  
     print(message)
     if message=="" :
         continue
-    # Skip CONNECT requests (HTTPS)
+
     if message.startswith('CONNECT'):
         print("Skipping HTTPS CONNECT request")
         tcpCliSock.close()
         continue
 
-    # Extract the filename from the given message
     url = message.split()[1]
     print("URL:", url)
-
 
     if url.startswith('http://'):
 
@@ -63,14 +61,13 @@ while 1:
     if message.split()[0] == "GET" :
         try:
             outputdata = ""
-            # Check whether the file exist in the cache
             def read_from_disk(path):
                 with open(path, "rb") as f:
                     return f.read()
             if message in CACHE :
                 print(CACHE[message])
                 outputdata=read_from_disk(CACHE[message])
-                print("ooo",outputdata)
+                print(outputdata)
             else:
                 raise IOError()
 
@@ -88,8 +85,8 @@ while 1:
 
         except IOError:
             if fileExist == "false":
-                # Create a socket on the proxyserver
-                c = socket(AF_INET, SOCK_STREAM)
+   
+                c = socket(AF_INET, SOCK_STREAM) ## AF_INET: IPv4, SOCK_STREAM: TCP
 
                 try:
                     # Connect to the socket to port 80
@@ -132,7 +129,6 @@ while 1:
 
                 except Exception as e:
                     print("Illegal request - Error:", e)
-                    # Send error response
                     error_msg = "HTTP/1.0 500 Proxy Error\r\n\r\n<html><body><h1>Proxy Failed to Fetch Resource</h1></body></html>"
                     tcpCliSock.send(error_msg.encode())
             else:
@@ -154,18 +150,16 @@ while 1:
             headers_part = message
             body = ""
 
-        # Parse headers into a dictionary
         headers_lines = headers_part.split('\r\n')
         headers = {}
-        for line in headers_lines[1:]:  # skip request line like POST /path HTTP/1.1
+        for line in headers_lines[1:]:  
             if ': ' in line:
                 key, value = line.split(': ', 1)
                 headers[key.lower()] = value
 
-        # Get content length if present
         content_length = int(headers.get('content-length', 0))
 
-        # If body is shorter than content_length, receive more data from socket
+        
         while len(body) < content_length:
             more = tcpCliSock.recv(1024).decode()
             if not more:
